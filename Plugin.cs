@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using BepInEx;
+using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 using UnityEngine;
@@ -14,10 +15,17 @@ public class Plugin : BaseUnityPlugin {
 
 	internal static new ManualLogSource Logger;
 
+	internal static ConfigEntry<int> ClockOffChance;
+	internal static ConfigEntry<bool> CanToggleClock, CanToggleRobot, CanToggleTeeth;
+
 	private void Awake() {
 		Logger = base.Logger;
 		Harmony harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
 		harmony.PatchAll();
+		ClockOffChance = Config.Bind("Clock", "turnedOffChance", 5, "The chance for a given Clock to be turned off by default");
+		CanToggleClock = Config.Bind("Clock", "canToggleClock", true, "Whether you can toggle on/off Clocks with Item Primary Use");
+		CanToggleRobot = Config.Bind("ToyRobot", "canToggleToyRobot", true, "Whether you can toggle on/off Toy Robots with Item Primary Use");
+		CanToggleTeeth = Config.Bind("Teeth", "canToggleTeeth", true, "Whether you can toggle on/off Teeth with Item Primary Use");
 		Logger.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} is loaded!");
 	}
 
@@ -38,7 +46,7 @@ public class Plugin : BaseUnityPlugin {
 	[HarmonyPatch(typeof(GrabbableObject), nameof(GrabbableObject.ItemActivate))]
 	[HarmonyPrefix]
 	private static void OnActivateItem(GrabbableObject __instance, bool used, bool buttonDown = true) {
-		if(__instance.itemProperties.name == "RobotToy" || __instance.itemProperties.name == "Dentures") {
+		if((__instance.itemProperties.name == "RobotToy" && CanToggleRobot.Value) || (__instance.itemProperties.name == "Dentures" && CanToggleTeeth.Value)) {
 			AnimatedItem item = __instance as AnimatedItem;
 			if(!item)
 				return;
@@ -57,7 +65,7 @@ public class Plugin : BaseUnityPlugin {
 					item.itemAudio.loop = item.loopGrabAudio;
 				}
 			}
-		} else if(__instance.itemProperties.name == "Clock" && __instance.TryGetComponent(out ClockNoiseBlocker blocker)) {
+		} else if(__instance.itemProperties.name == "Clock" && CanToggleClock.Value && __instance.TryGetComponent(out ClockNoiseBlocker blocker)) {
 			ClockProp clock = __instance as ClockProp;
 			if(!clock)
 				return;
@@ -85,7 +93,7 @@ public class Plugin : BaseUnityPlugin {
 			}
 			if(!__instance.GetComponent<ClockNoiseBlocker>()) {
 				ClockNoiseBlocker blocker = __instance.gameObject.AddComponent<ClockNoiseBlocker>();
-				blocker.Initialize(__instance, 5);
+				blocker.Initialize(__instance, ClockOffChance.Value);
 			}
 		}
 	}
@@ -113,7 +121,7 @@ public class Plugin : BaseUnityPlugin {
 			ClockNoiseBlocker blocker = __instance.GetComponent<ClockNoiseBlocker>();
 			if(blocker == null) {
 				blocker = __instance.gameObject.AddComponent<ClockNoiseBlocker>();
-				blocker.Initialize(__instance, 5);
+				blocker.Initialize(__instance, ClockOffChance.Value);
 			}
 			blocker.blockClockTicking = (saveData != -1);
 			blocker.timeUntilNextSecond = saveData / 100f;

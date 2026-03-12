@@ -1,7 +1,7 @@
 {
 	"name": "MoreToggleableItems",
 	"description": "Allows Toy Robots, Teeth, and Clocks to be turned off with Item Primary Use. Clocks now also have a 5% chance to be turned off by default, and whether they're active will be saved to your save file.",
-	"version_number": "1.0.0",
+	"version_number": "1.0.1",
 	"dependencies": [ "BepInEx-BepInExPack-5.4.2304" ],
 	"website_url": "https://github.com/Tetriscat66/LethalCompany.MoreToggleableItems"
 }
